@@ -37,53 +37,20 @@ class DataLoader:
     def get_graph(self):
         return self.G
     
-    def load_community(self):
-        community_path = "../datasets/" + self.dataset_name + "_louvain.txt"
-        with open(community_path, 'r') as f:
-            lines = f.readlines()
-        for line in lines:
-            data = line.split()
-            self.c_id.setdefault(int(data[0]), []).append(int(data[1]))
-            self.id_c[int(data[1])] = int(data[0])
+    # Louvain のコミュニティを読み込む時に使用
+    # def load_community(self):
+    #     community_path = "../datasets/" + self.dataset_name + "_louvain.txt"
+    #     with open(community_path, 'r') as f:
+    #         lines = f.readlines()
+    #     for line in lines:
+    #         data = line.split()
+    #         self.c_id.setdefault(int(data[0]), []).append(int(data[1]))
+    #         self.id_c[int(data[1])] = int(data[0])
             
-    def get_communities(self):
-        return self.c_id, self.id_c
+    # def get_communities(self):
+    #     return self.c_id, self.id_c
     
-    # コミュニティ境界ノードを取得
-    def get_bound_node(self):
-        
-        # {所属コミュニティ：境界ノード}
-        com_bound_node_dic = {com_id : [] for com_id in self.c_id}
-        
-        for com_id in self.c_id:
-            for v in self.c_id[com_id]:
-                v_neighbors_list = list(self.G.neighbors(v))
-                
-                for adj_node in v_neighbors_list:
-                    if(com_id != self.id_c[adj_node]):
-                        com_bound_node_dic[com_id].append(v)
-                        
-        
-        return com_bound_node_dic 
-    
-    # ノード情報取得 (次数(コミュニティ内/外), 所属コミュニティ)
-    def get_node_info(self, v):
-        
-        # 次数
-        v_deg = self.G.degree(v)
-        
-        # 所属コミュニティ
-        v_belong_com = self.id_c[v]
-        
-        # どれだけ他のコミュニティノードと繋がっているか
-        com_bound_deg_dic = {com_id : 0 for com_id in self.c_id}
-        
-        v_neighbors_list = list(self.G.neighbors(v))
-        for adj_node in v_neighbors_list:
-            com_bound_deg_dic[self.id_c[adj_node]] += 1
-            
-            
-        return v_deg, v_belong_com, com_bound_deg_dic
+   
     
 #------------------------------------------------------------------
 
@@ -197,7 +164,7 @@ class EPPR:
             total_flow_val_0 = sum(flow[edge[0]].values())
             if(total_flow_val_0 != 0):
                 flow_ratio_0 = flow[edge[0]][(edge[1], edge[0])] / total_flow_val_0
-                edge_selfppr_val += node_selfppr[edge[0]] * flow_ratio_0 * self.G.degree(edge[0])
+                edge_selfppr_val += node_selfppr[edge[0]] * flow_ratio_0 * self.G.degree(edge[1])
             else:
                 edge_selfppr_val += 0
             #edge_selfppr_val += node_selfppr[edge[0]] * flow_ratio_0 * node_selfppr[edge[0]]
@@ -208,7 +175,7 @@ class EPPR:
             total_flow_val_1 = sum(flow[edge[1]].values())
             if(total_flow_val_1 != 0):
                 flow_ratio_1 = flow[edge[1]][(edge[0], edge[1])] / total_flow_val_1
-                edge_selfppr_val += node_selfppr[edge[1]] * flow_ratio_1 * self.G.degree(edge[1])
+                edge_selfppr_val += node_selfppr[edge[1]] * flow_ratio_1 * self.G.degree(edge[0])
                 
             else:
                 edge_selfppr_val += 0
@@ -295,8 +262,7 @@ class BFS:
         max_edge = edge_selfppr_sort_list[0]
         #max_edge = max(self.edge_selfppr, key=self.edge_selfppr.get)
         
-        # 最大還流度を持つエッジの端のうち、ノード還流度が高い方を開始ノードとする
-        #start_node = max_edge[0] if node_selfppr[max_edge[0]] >= node_selfppr[max_edge[1]] else max_edge[1]
+        # 最大還流度を持つエッジの端のうち、次数が高い方を開始ノードとする
         start_node = max_edge[0] if self.G.degree[max_edge[0]] >= self.G.degree[max_edge[1]] else max_edge[1]
         
         
@@ -306,8 +272,6 @@ class BFS:
         
         print(f"start_node : {start_node}")
         
-         # αに応じて適応的に閾値を設定
-        #conductance_threshold = 0.5 + 0.5 * (alpha / (0.3 + alpha))
         
         # BFSで各ノードの距離を取得
         distance_from_start = self.calc_simple_bfs(start_node)
@@ -353,8 +317,6 @@ class BFS:
             
             
             
-            # 距離 k 層のエッジを何個チェックしたかをカウント
-            #num_cnt = 0
             
             # エッジ還流度の減少から増加に変わるポイントを探索
             for tmp_key in edges_by_layer_sort:
@@ -402,31 +364,11 @@ class BFS:
                                     community.append(node)
                                 
                                 return community
-                            else:
-                                
-                                # if (len(community) < 3):
-                                #     self.G.add_edges_from([edge_in_layer])
-                                #     continue
-                                    
-                                if(nx.conductance(G, community)>1.0):
-                                    #print("---------size 2-------------")
-                                    self.G.add_edges_from([edge_in_layer])
-                                    continue
-                                    
+                            else:   
                                 return community
                         else:
                             if(len(component_list) != 0):
                                 self.G.add_edges_from([edge_in_layer])
-                                # for node in component_list:
-                                #     self.node_list.append(node)
-                        #     #self.G = self.G.subgraph(self.node_list)
-                                
-                        
-                        
-                        # for component in largest_components[1:]:
-                        #     if start_node in component:
-                        #         return list(component)
-                            
 
                         break
                 
@@ -451,16 +393,10 @@ class BFS:
                 
                 self.delete_edge_from_edge_selfppr(community)
             
-                # if(len(communities) > 20):
-                #     break
-            
             else: 
                 break
             
-        communities.append(list(self.G.nodes))
-        print(f"edge_selfppr_len : {len(self.edge_selfppr)}")    
-            
-           
+        communities.append(list(self.G.nodes))           
             
         return communities
                 
@@ -470,33 +406,6 @@ class BFS:
 
 #------------------------------------------------------------------
 # モジュラリティ計算
-
-# class MOD:
-#     def __init__(self, G):
-#         self.G = G
-#         self.node_list = list(self.G.nodes)
-#         self.edge_num = self.G.size()
-        
-#     def calc_mod_per_com(self, c_id):
-        
-#         q_per_com_dic = dict()
-        
-#         for com_id in c_id:
-           
-#             H = self.G.subgraph(c_id[com_id])
-                
-#             Q_per_com = H.size() # コミュニティ内エッジ数
-            
-#             H_node_list = list(H.nodes)
-            
-#             for i in range(len(H_node_list)):
-#                 for j in range(len(H_node_list)):
-#                     Q_per_com -= self.G.degree(H_node_list[i])*self.G.degree(H_node_list[j]) / (2*self.edge_num)
-                    
-            
-#             q_per_com_dic[com_id] = Q_per_com / (2*self.edge_num)
-            
-#         return q_per_com_dic
                     
 class MOD:
     def __init__(self, G):

@@ -1,3 +1,5 @@
+# 頂点ID が連続でない場合に ID を振り直すのに使用するコード
+
 import networkx as nx
 
 # /usr/bin/python3 /Users/tyama/tyama_code/apps/update_index.py

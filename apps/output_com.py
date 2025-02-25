@@ -21,12 +21,12 @@ import pandas as pd
 import statistics
 
 
-# /usr/bin/python3 /Users/tyama/tyama_exp/apps13/output_com.py
+# /usr/bin/python3 /Users/tyama/tyama_code/apps/output_com.py
 
 # -------------------------- データ読み込み -------------------------
-#dataset_name = "fb_p"
+
 dataset_name = "facebook"
-#dataset_name = "fb_food"
+
 
 
 data_loader = DataLoader(dataset_name, is_directed=False)
@@ -96,7 +96,8 @@ communities = bfs_obj.extract_all_communities(G, alpha=alpha,node_selfppr=node_s
 print(f"com num : {len(communities)}")
 
 # txt ファイルに出力
-output_file = "../com_dir/" + dataset_name + "/proposed_true_" + str(alpha) + ".txt"
+# {コミュニティID : 頂点ID}
+output_file = "../com_dir/" + dataset_name + "/proposed_com_" + str(alpha) + ".txt"
 
 with open(output_file, "w") as f:
     for com_id in range(len(communities)):
